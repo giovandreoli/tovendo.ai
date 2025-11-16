@@ -5,6 +5,7 @@ async function entrar() {
     const nome = document.getElementById("nome").value;
     const sala = document.getElementById("sala").value;
 
+    // Conecta via WebSocket
     ws = new WebSocket(`wss://${location.host}/ws/${sala}/${nome}`);
 
     ws.onmessage = (event) => {
@@ -24,10 +25,12 @@ async function entrar() {
         }
     };
 
+    // Oculta menu e mostra jogo
     document.getElementById("menu").style.display = "none";
     document.getElementById("jogo").style.display = "block";
 
-    iniciarCamera();
+    // Inicia câmera e detecção
+    await iniciarCamera();
     iniciarDeteccao();
 }
 
@@ -39,8 +42,25 @@ function atualizarPontos(pontos) {
 
 async function iniciarCamera() {
     const video = document.getElementById("video");
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    video.srcObject = stream;
+    
+    // Evita duplicidade de stream
+    if (!video.srcObject) {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+    }
+}
+
+function corDetectada(r, g, b, corAlvo) {
+    switch(corAlvo) {
+        case "vermelho": return r > 150 && g < 100 && b < 100;
+        case "verde":    return g > 150 && r < 100 && b < 100;
+        case "azul":     return b > 150 && r < 100 && g < 100;
+        case "amarelo":  return r > 150 && g > 150 && b < 100;
+        case "rosa":     return r > 150 && b > 100 && g < 120;
+        case "laranja":  return r > 150 && g > 80 && g < 150 && b < 80;
+        case "roxo":     return r > 100 && b > 100 && g < 80;
+    }
+    return false;
 }
 
 function iniciarDeteccao() {
@@ -51,6 +71,8 @@ function iniciarDeteccao() {
     setInterval(() => {
         if (!corAlvo) return;
 
+        // Limpa o canvas antes de desenhar
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const frame = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
 
@@ -61,18 +83,24 @@ function iniciarDeteccao() {
             const g = frame[i + 1];
             const b = frame[i + 2];
 
-            if (corAlvo === "vermelho" && r > 180 && g < 80 && b < 80) detectado = true;
-            if (corAlvo === "verde"   && g > 180 && r < 80 && b < 80) detectado = true;
-            if (corAlvo === "azul"    && b > 180 && r < 80 && g < 80) detectado = true;
-
-            if (detectado) break;
+            if (corDetectada(r, g, b, corAlvo)) {
+                detectado = true;
+                break;
+            }
         }
 
         if (detectado) {
             ws.send(JSON.stringify({ type: "achei" }));
             corAlvo = null;
-            document.getElementById("corRodada").innerText = "Aguardando próxima rodada...";
+
+            // Feedback visual
+            const corRodada = document.getElementById("corRodada");
+            corRodada.innerText = "🎉 Parabéns! Cor encontrada!";
+
+            setTimeout(() => {
+                corRodada.innerText = "Aguardando próxima rodada...";
+            }, 2000);
         }
 
-    }, 200);
+    }, 200); // Atualiza a cada 200ms
 }
