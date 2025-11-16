@@ -1,11 +1,11 @@
 let ws;
 let corAlvo = null;
+let videoStream = null;
 
 async function entrar() {
     const nome = document.getElementById("nome").value;
     const sala = document.getElementById("sala").value;
 
-    // Conecta via WebSocket
     ws = new WebSocket(`wss://${location.host}/ws/${sala}/${nome}`);
 
     ws.onmessage = (event) => {
@@ -25,11 +25,9 @@ async function entrar() {
         }
     };
 
-    // Oculta menu e mostra jogo
     document.getElementById("menu").style.display = "none";
     document.getElementById("jogo").style.display = "block";
 
-    // Inicia câmera e detecção
     await iniciarCamera();
     iniciarDeteccao();
 }
@@ -42,11 +40,10 @@ function atualizarPontos(pontos) {
 
 async function iniciarCamera() {
     const video = document.getElementById("video");
-    
-    // Evita duplicidade de stream
-    if (!video.srcObject) {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        video.srcObject = stream;
+    if (!videoStream) {
+        videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        video.srcObject = videoStream;
+        await video.play();
     }
 }
 
@@ -68,10 +65,12 @@ function iniciarDeteccao() {
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
 
-    setInterval(() => {
-        if (!corAlvo) return;
+    function detectar() {
+        if (!corAlvo) {
+            requestAnimationFrame(detectar);
+            return;
+        }
 
-        // Limpa o canvas antes de desenhar
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const frame = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
@@ -93,7 +92,6 @@ function iniciarDeteccao() {
             ws.send(JSON.stringify({ type: "achei" }));
             corAlvo = null;
 
-            // Feedback visual
             const corRodada = document.getElementById("corRodada");
             corRodada.innerText = "🎉 Parabéns! Cor encontrada!";
 
@@ -102,5 +100,8 @@ function iniciarDeteccao() {
             }, 2000);
         }
 
-    }, 200); // Atualiza a cada 200ms
+        requestAnimationFrame(detectar);
+    }
+
+    requestAnimationFrame(detectar);
 }
