@@ -27,10 +27,15 @@ async function entrar() {
         }
 
         if (msg.type === "vencedor_final") {
-            alert(`🏆 Vencedor final: ${msg.nome}`);
-        corAlvo = null;     // não há mais cor para procurar
-        detectando = false; // bloqueia detecção
-        document.getElementById("corRodada").innerText = "Jogo finalizado!";}
+            alert(`🏆 Vencedor: ${msg.nome}`);
+            corAlvo = null;
+            detectando = false;
+            document.getElementById("corRodada").innerText = "Jogo finalizado!";
+            
+            // Voltar ao menu
+            document.getElementById("jogo").style.display = "none";
+            document.getElementById("menu").style.display = "block";
+        }
     };
 
     document.getElementById("menu").style.display = "none";
