@@ -1,6 +1,8 @@
 let ws;
 let corAlvo = null;
 
+
+
 async function entrar() {
     const nome = document.getElementById("nome").value;
     const sala = document.getElementById("sala").value;
