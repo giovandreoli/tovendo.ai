@@ -1,2 +1,7 @@
+<<<<<<< HEAD
 fastapi
 uvicorn[standard]
+=======
+fastapi 
+uvicorn
+>>>>>>> fbd9557c9325f6b114404f560cc32fa47afa3f51
