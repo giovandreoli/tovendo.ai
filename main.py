@@ -6,21 +6,18 @@ import json
 
 app = FastAPI()
 
+# Monta a pasta static
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 salas = {}  # { codigo_sala: { "jogadores": {ws: nome}, "pontos": {nome: int}, "rodada": 0 } }
-
 CORES = ["vermelho", "verde", "azul", "amarelo", "rosa", "laranja", "roxo"]
-
 
 def sortear_cor():
     return random.choice(CORES)
 
-
 @app.get("/")
 def home():
     return HTMLResponse(open("static/index.html").read())
-
 
 @app.websocket("/ws/{sala}/{nome}")
 async def websocket_endpoint(websocket: WebSocket, sala: str, nome: str):
@@ -32,6 +29,16 @@ async def websocket_endpoint(websocket: WebSocket, sala: str, nome: str):
     salas[sala]["jogadores"][websocket] = nome
     salas[sala]["pontos"].setdefault(nome, 0)
 
+    # Enviar primeira cor se for primeira rodada
+    if salas[sala]["rodada"] == 0:
+        cor_inicial = sortear_cor()
+        salas[sala]["rodada"] += 1
+        for ws in salas[sala]["jogadores"].keys():
+            await ws.send_json({
+                "type": "cor",
+                "cor": cor_inicial
+            })
+
     try:
         while True:
             data = await websocket.receive_text()
@@ -41,11 +48,10 @@ async def websocket_endpoint(websocket: WebSocket, sala: str, nome: str):
             if msg["type"] == "achei":
                 salas[sala]["pontos"][nome] += 1
 
-                # Enviar para todos
+                # Enviar pontuação para todos
                 for ws in salas[sala]["jogadores"].keys():
                     await ws.send_json({
                         "type": "ponto",
-                        "nome": nome,
                         "pontos": salas[sala]["pontos"]
                     })
 
