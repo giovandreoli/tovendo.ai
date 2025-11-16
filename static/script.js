@@ -1,6 +1,7 @@
 let ws;
 let corAlvo = null;
 let videoStream = null;
+let detectando = true; // controla se a detecção está ativa
 
 async function entrar() {
     const nome = document.getElementById("nome").value;
@@ -13,6 +14,7 @@ async function entrar() {
 
         if (msg.type === "cor") {
             corAlvo = msg.cor;
+            detectando = true;
             document.getElementById("corRodada").innerText = "Procurando: " + corAlvo.toUpperCase();
         }
 
@@ -20,8 +22,13 @@ async function entrar() {
             atualizarPontos(msg.pontos);
         }
 
-        if (msg.type === "vencedor") {
-            alert("🏆 Vencedor: " + msg.nome);
+        if (msg.type === "rodada_vencedor") {
+            alert(`🏆 Rodada ganha por: ${msg.nome}`);
+        }
+
+        if (msg.type === "vencedor_final") {
+            alert(`🏆 Vencedor final: ${msg.nome}`);
+            detectando = false;
         }
     };
 
@@ -60,13 +67,26 @@ function corDetectada(r, g, b, corAlvo) {
     return false;
 }
 
+// retorna true se a cor ocupa mais de 2% do canvas
+function detectarCor(frame, corAlvo) {
+    let count = 0;
+    const totalPixels = frame.length / 4;
+    for (let i = 0; i < frame.length; i += 4) {
+        const r = frame[i];
+        const g = frame[i + 1];
+        const b = frame[i + 2];
+        if (corDetectada(r, g, b, corAlvo)) count++;
+    }
+    return (count / totalPixels) > 0.02; // 2% do frame
+}
+
 function iniciarDeteccao() {
     const video = document.getElementById("video");
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
 
     function detectar() {
-        if (!corAlvo) {
+        if (!corAlvo || !detectando) {
             requestAnimationFrame(detectar);
             return;
         }
@@ -75,23 +95,11 @@ function iniciarDeteccao() {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const frame = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
 
-        let detectado = false;
-
-        for (let i = 0; i < frame.length; i += 4) {
-            const r = frame[i];
-            const g = frame[i + 1];
-            const b = frame[i + 2];
-
-            if (corDetectada(r, g, b, corAlvo)) {
-                detectado = true;
-                break;
-            }
-        }
+        const detectado = detectarCor(frame, corAlvo);
 
         if (detectado) {
+            detectando = false; // bloqueia múltiplos acertos
             ws.send(JSON.stringify({ type: "achei" }));
-            corAlvo = null;
-
             const corRodada = document.getElementById("corRodada");
             corRodada.innerText = "🎉 Parabéns! Cor encontrada!";
 
