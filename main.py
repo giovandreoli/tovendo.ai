@@ -74,6 +74,9 @@ async def websocket_endpoint(websocket: WebSocket, sala: str, nome: str):
                     else:
                         await iniciar_rodada(sala)
 
+                    salas[sala]["jogador_achou"] = None
+                    return 
+
     except WebSocketDisconnect:
         del salas[sala]["jogadores"][websocket]
 
