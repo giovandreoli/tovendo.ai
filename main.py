@@ -56,7 +56,7 @@ async def websocket_endpoint(websocket: WebSocket, sala: str, nome: str):
                         max_pontos = max(pontos.values())
                         vencedores = [j for j, p in pontos.items() if p == max_pontos]
                         vencedor_final = ", ".join(vencedores)
-                        for ws in salas[sala]["jogadores"].keys():
+                        for ws in list(salas[sala]["jogadores"].keys()):
                             await ws.send_json({
                                 "type": "vencedor_final",
                                 "nome": vencedor_final
@@ -64,34 +64,27 @@ async def websocket_endpoint(websocket: WebSocket, sala: str, nome: str):
                         # Encerra o jogo: não envia mais cores
                         return
                     else:
-                        # Nova rodada com delay
-                        await asyncio.sleep(2)
-                        cor = sortear_cor()
+                        # Delay antes de iniciar nova rodada para evitar processamento imediato
+                        await asyncio.sleep(3)
                         salas[sala]["rodada"] += 1
                         salas[sala]["jogador_achou"] = None
-                        for ws in salas[sala]["jogadores"].keys():
-                            await ws.send_json({"type": "cor", "cor": cor})
 
+                        if salas[sala]["rodada"] >= salas[sala]["max_rodadas"]:
+                            # Determina vencedor final
+                            pontos = salas[sala]["pontos"]
+                            max_pontos = max(pontos.values())
+                            vencedores = [j for j, p in pontos.items() if p == max_pontos]
+                            vencedor_final = ", ".join(vencedores)
+                            for ws in list(salas[sala]["jogadores"].keys()):
+                                await ws.send_json({
+                                    "type": "vencedor_final",
+                                    "nome": vencedor_final
+                                })
+                            ##
 
-                    # Espera 2 segundos antes de nova rodada ou finalizar jogo
-                    await asyncio.sleep(2)
-                    salas[sala]["rodada"] += 1
-                    salas[sala]["jogador_achou"] = None
-
-                    if salas[sala]["rodada"] >= salas[sala]["max_rodadas"]:
-                        # Determina vencedor final
-                        pontos = salas[sala]["pontos"]
-                        max_pontos = max(pontos.values())
-                        vencedores = [j for j, p in pontos.items() if p == max_pontos]
-                        vencedor_final = ", ".join(vencedores)
-                        for ws in salas[sala]["jogadores"].keys():
-                            await ws.send_json({
-                                "type": "vencedor_final",
-                                "nome": vencedor_final
-                            })
-                    else:
-                        await iniciar_rodada(sala)
- 
+                        else:
+                            await iniciar_rodada(sala)
+   
 
     except WebSocketDisconnect:
         del salas[sala]["jogadores"][websocket]
