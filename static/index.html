@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Tô vendo.AI</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div id="menu">
+    <h1 class="title">Tô vendo.AI
+      <div class="aurora">
+        <div class="aurora__item"></div>
+        <div class="aurora__item"></div>
+        <div class="aurora__item"></div>
+        <div class="aurora__item"></div>
+      </div>
+    </h1>
+    <h2 class="subtitle">O JOGO</h2>
+
+    <input id="nome" placeholder="Seu nome">
+    <input id="sala" placeholder="Código da sala">
+    <button onclick="entrar()">JOGAR</button>
+</div>
+
+<div id="jogo" style="display:none;">
+    <h2 id="corRodada">Aguardando...</h2>
+    
+    <video id="video" autoplay playsinline style="display:none;"></video>
+    <canvas id="canvas" width="300" height="200"></canvas>
+
+    <h3>Pontuação:</h3>
+    <div id="pontos"></div>
+</div>
+
+<script src="/static/script.js"></script>
+</body>
+</html>
